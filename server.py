@@ -1,6 +1,10 @@
 import openpyxl
 import csv
+import uvicorn
 from mcp.server.fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.routing import Route, Mount
+from starlette.responses import JSONResponse
 
 mcp = FastMCP("수업길잡이")
 
@@ -70,5 +74,14 @@ def recommend_school(region: str, subjects: str) -> str:
         )
     return "\n---\n".join(rows)
 
+async def health(request):
+    return JSONResponse({"status": "ok"})
+
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8000)
+    mcp_app = mcp.streamable_http_app()
+    app = Starlette(routes=[
+        Route("/", health),
+        Route("/health", health),
+        Mount("/", app=mcp_app),
+    ])
+    uvicorn.run(app, host="0.0.0.0", port=8000)
