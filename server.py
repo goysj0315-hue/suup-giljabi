@@ -3,7 +3,8 @@ import csv
 import os
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("수업길잡이")
+port = int(os.environ.get("PORT", 8080))
+mcp = FastMCP("수업길잡이", host="0.0.0.0", port=port, stateless_http=True)
 
 wb = openpyxl.load_workbook("subject_data.xlsx", read_only=True, data_only=True)
 ws = wb.active
@@ -27,7 +28,7 @@ with open("school_subjects.csv", encoding="utf-8-sig") as f:
 
 @mcp.tool()
 def recommend_subjects(university: str, department: str) -> str:
-    """Retrieves recommended subjects from 수업길잡이(수업길잡이) service. Given a target university and department, returns core and recommended subjects. university: 대학명 (예: 경희대, 서울대). department: 학과명 (예: 컴퓨터공학과, 의예과)"""
+    """Retrieves recommended subjects from 수업길잡이(SuupGilJabi) service. Given a target university and department, returns core and recommended subjects. university: 대학명 (예: 경희대, 서울대). department: 학과명 (예: 컴퓨터공학과, 의예과)"""
     results = [
         row for row in subject_data
         if university in row["대학명"] and
@@ -47,7 +48,7 @@ def recommend_subjects(university: str, department: str) -> str:
 
 @mcp.tool()
 def recommend_school(region: str, subjects: str) -> str:
-    """Recommends high schools from 수업길잡이(수업길잡이) service. Given a region and required subjects, returns top 5 high schools. region: 지역명 (예: 서울특별시, 경기도). subjects: 과목들 쉼표로 구분 (예: 미적분,물리학Ⅰ)"""
+    """Recommends high schools from 수업길잡이(SuupGilJabi) service. Given a region and required subjects, returns top 5 high schools. region: 지역명 (예: 서울특별시, 경기도). subjects: 과목들 쉼표로 구분 (예: 미적분,물리학Ⅰ)"""
     subject_list = [s.strip() for s in subjects.split(",")]
     regional_schools = [s for s in school_data if region in s["지역"]]
     if not regional_schools:
@@ -72,5 +73,4 @@ def recommend_school(region: str, subjects: str) -> str:
     return "\n---\n".join(rows)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
+    mcp.run(transport="streamable-http")
