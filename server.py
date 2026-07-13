@@ -72,4 +72,5 @@ def recommend_school(region: str, subjects: str) -> str:
     return "\n---\n".join(rows)
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8080)
+    import uvicorn
+    uvicorn.run(mcp.streamable_http_app(), host="0.0.0.0", port=8080)
