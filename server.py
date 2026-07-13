@@ -1,11 +1,10 @@
 import openpyxl
 import csv
 from mcp.server.fastmcp import FastMCP
-from mcp.types import ToolAnnotations
 
 mcp = FastMCP("수업길잡이")
 
-wb = openpyxl.load_workbook("2028학년도 권역별 대학별 권장과목(반영과목).xlsx", read_only=True, data_only=True)
+wb = openpyxl.load_workbook("subject_data.xlsx", read_only=True, data_only=True)
 ws = wb.active
 
 subject_data = []
@@ -25,22 +24,9 @@ with open("school_subjects.csv", encoding="utf-8-sig") as f:
     for row in reader:
         school_data.append(row)
 
-@mcp.tool(
-    annotations=ToolAnnotations(
-        title="대학 권장과목 조회",
-        readOnlyHint=True,
-        destructiveHint=False,
-        openWorldHint=False,
-        idempotentHint=True
-    )
-)
+@mcp.tool()
 def recommend_subjects(university: str, department: str) -> str:
-    """
-    Retrieves recommended high school subjects from 수업길잡이(수업길잡이) service.
-    Given a target university and department, returns core and recommended subjects for high school students.
-    university: 대학명 (예: 경희대, 서울대, 연세대)
-    department: 학과명 (예: 컴퓨터공학과, 의예과, 경영학과)
-    """
+    """Retrieves recommended subjects from 수업길잡이(수업길잡이) service. Given a target university and department, returns core and recommended subjects. university: 대학명 (예: 경희대, 서울대). department: 학과명 (예: 컴퓨터공학과, 의예과)"""
     results = [
         row for row in subject_data
         if university in row["대학명"] and
@@ -58,23 +44,9 @@ def recommend_subjects(university: str, department: str) -> str:
         )
     return "\n---\n".join(rows)
 
-
-@mcp.tool(
-    annotations=ToolAnnotations(
-        title="고등학교 추천",
-        readOnlyHint=True,
-        destructiveHint=False,
-        openWorldHint=False,
-        idempotentHint=True
-    )
-)
+@mcp.tool()
 def recommend_school(region: str, subjects: str) -> str:
-    """
-    Recommends high schools from 수업길잡이(수업길잡이) service.
-    Given a region and required subjects, returns top 5 high schools that offer those subjects.
-    region: 지역명 (예: 서울특별시, 경기도, 부산광역시)
-    subjects: 필요한 과목들 쉼표로 구분 (예: 미적분,물리학Ⅰ,화학Ⅰ)
-    """
+    """Recommends high schools from 수업길잡이(수업길잡이) service. Given a region and required subjects, returns top 5 high schools. region: 지역명 (예: 서울특별시, 경기도). subjects: 과목들 쉼표로 구분 (예: 미적분,물리학Ⅰ)"""
     subject_list = [s.strip() for s in subjects.split(",")]
     regional_schools = [s for s in school_data if region in s["지역"]]
     if not regional_schools:
@@ -88,9 +60,8 @@ def recommend_school(region: str, subjects: str) -> str:
     if not scored:
         return f"'{region}'에서 해당 과목을 개설한 학교를 찾을 수 없습니다."
     scored.sort(key=lambda x: x[0], reverse=True)
-    top5 = scored[:5]
     rows = []
-    for score, school in top5:
+    for score, school in scored[:5]:
         rows.append(
             f"학교명: {school['학교명']}\n"
             f"지역: {school['지역']}\n"
@@ -98,7 +69,6 @@ def recommend_school(region: str, subjects: str) -> str:
             f"매칭과목수: {score}/{len(subject_list)}개"
         )
     return "\n---\n".join(rows)
-
 
 if __name__ == "__main__":
     mcp.run(transport="streamable-http", host="0.0.0.0", port=8000)
