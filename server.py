@@ -82,6 +82,6 @@ if __name__ == "__main__":
     app = Starlette(routes=[
         Route("/", health),
         Route("/health", health),
-        Mount("/", app=mcp_app),
+        Mount("/mcp", app=mcp_app),
     ])
     uvicorn.run(app, host="0.0.0.0", port=8000)
