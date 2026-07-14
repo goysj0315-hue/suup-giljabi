@@ -2,6 +2,7 @@ import openpyxl
 import csv
 import os
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 port = int(os.environ.get("PORT", 8080))
 mcp = FastMCP("수업길잡이", host="0.0.0.0", port=port, stateless_http=True)
@@ -39,9 +40,17 @@ def normalize_dept(dept):
             break
     return d.strip()
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        title="대학 권장과목 조회",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+        idempotentHint=True
+    )
+)
 def recommend_subjects(university: str, department: str) -> str:
-    """Retrieves recommended high school subjects from 수업길잡이(SuupGilJabi) service for university admission. Given a target university and department, returns core and recommended subjects. university: 대학명 (예: 경희대, 서울대). department: 학과명 (예: 컴퓨터공학과, 의예과)"""
+    """[수업길잡이-고교학점제 권장과목 추천 모델(SuupGilJabi)] Retrieves recommended high school subjects for university admission. Given a target university and department, returns core and recommended subjects based on official KCUE data. university: 대학명 (예: 경희대, 서울대). department: 학과명 (예: 컴퓨터공학과, 의예과)"""
     univ = university.replace("학교", "").strip()
     dept_key = normalize_dept(department)
 
@@ -73,9 +82,17 @@ def recommend_subjects(university: str, department: str) -> str:
         )
     return "\n---\n".join(rows)
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(
+        title="고등학교 추천",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+        idempotentHint=True
+    )
+)
 def recommend_school(region: str, subjects: str) -> str:
-    """Recommends high schools from 수업길잡이(SuupGilJabi) service based on 2025 curriculum data. Given a region and required subjects, returns top 5 high schools that offer those subjects. region: 지역명 (예: 서울특별시, 경기도). subjects: 과목들 쉼표로 구분 (예: 미적분,물리학Ⅰ)"""
+    """[수업길잡이-고교학점제 권장과목 추천 모델(SuupGilJabi)] Recommends high schools based on 2025 curriculum data. Given a region and required subjects, returns top 5 high schools that offer those subjects. region: 지역명 (예: 서울특별시, 경기도). subjects: 과목들 쉼표로 구분 (예: 미적분,물리학Ⅰ)"""
     subject_list = [s.strip() for s in subjects.split(",") if s.strip()]
     regional_schools = [s for s in school_data if region in s["지역"]]
     if not regional_schools:
